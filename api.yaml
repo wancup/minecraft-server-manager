@@ -1,0 +1,15 @@
+openapi: 3.0.2
+info:
+  title: manage-minecraft-server
+  description: マイクラサーバーを起動・停止・状態確認を行う
+  version: 0.0.1
+servers:
+  - url: https://example.com/api/v0
+    description: プロダクション API
+  - url: http://{host}:{port}/api/v0
+    description: 開発用
+    variables:
+      host:
+        default: localhost
+      port:
+        default: '10080'
