@@ -18,8 +18,8 @@ pub enum ServerState {
     Stopping,
     /// 停止中
     Stopped,
-    /// その他
-    Other,
+    /// その他予期しない状態
+    Unexpected,
 }
 
 impl From<&str> for ServerState {
@@ -29,7 +29,7 @@ impl From<&str> for ServerState {
             "running" => ServerState::Running,
             "stopping" => ServerState::Stopping,
             "stopped" => ServerState::Stopped,
-            _ => ServerState::Other,
+            _ => ServerState::Unexpected,
         }
     }
 }
