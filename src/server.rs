@@ -70,10 +70,11 @@ impl fmt::Display for ServerState {
 }
 
 /// レスポンス
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResponsePayload {
-    server_state: ServerState,
+pub struct ResponsePayload {
+    pub server_state: ServerState,
+    pub ip_address: Option<String>,
 }
 
 /// サーバに対してPOSTを送る
@@ -86,7 +87,7 @@ struct ResponsePayload {
 pub async fn post_request_to_server(
     req_type: PostRequestType,
     sleep_duration: Option<Duration>,
-) -> Result<ServerState, String> {
+) -> Result<ResponsePayload, String> {
     match sleep_duration {
         Some(time) => sleep(time),
         None => (), //NOP
@@ -105,5 +106,5 @@ pub async fn post_request_to_server(
         .json()
         .await
         .map_err(|e| e.to_string())?;
-    Ok(current_state.server_state)
+    Ok(current_state)
 }

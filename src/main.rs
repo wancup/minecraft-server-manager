@@ -1,9 +1,9 @@
 #![windows_subsystem = "windows"]
 
-use crate::server::{post_request_to_server, PostRequestType, ServerState};
+use crate::server::{post_request_to_server, PostRequestType, ResponsePayload, ServerState};
 use iced::{
-    button, executor, window, Align, Application, Button, Color, Column, Command, Element,
-    HorizontalAlignment, Length, Row, Settings, Text,
+    button, executor, text_input, window, Align, Application, Button, Color, Column, Command,
+    Element, HorizontalAlignment, Length, Row, Settings, Text, TextInput,
 };
 use std::time::Duration;
 
@@ -11,10 +11,12 @@ mod config;
 mod server;
 
 /// メイン画面
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Default)]
 struct ServerManager {
-    /// 現在のサーバーの状態
-    current_state: ServerState,
+    /// 現在のサーバーの情報
+    server_info: ResponsePayload,
+    /// IPアドレス表示用TextInputの状態
+    address_state: text_input::State,
     /// エラー発生時のエラー内容
     err_message: String,
     /// サーバの状態確認を行った回数
@@ -37,7 +39,9 @@ pub enum Message {
     /// 停止ボタンが押された
     StopServer,
     /// サーバ状態の表示を変更する
-    UpdateServerState(Result<ServerState, String>),
+    UpdateServerState(Result<ResponsePayload, String>),
+    /// サーバIPのTextInputが変更された
+    AddressInputIsChanged(String),
 }
 
 impl ServerManager {
@@ -73,30 +77,38 @@ impl Application for ServerManager {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::StartServer => {
-                self.current_state = ServerState::Connecting;
+                self.server_info = ResponsePayload {
+                    server_state: ServerState::Connecting,
+                    ip_address: self.server_info.ip_address.clone(),
+                };
                 Command::perform(
                     post_request_to_server(PostRequestType::StartServer, None),
                     Message::UpdateServerState,
                 )
             }
             Message::ReloadServerStatus => {
-                self.current_state = ServerState::Connecting;
+                self.server_info = ResponsePayload {
+                    server_state: ServerState::Connecting,
+                    ip_address: self.server_info.ip_address.clone(),
+                };
                 Command::perform(
                     post_request_to_server(PostRequestType::GetServerStatus, None),
                     Message::UpdateServerState,
                 )
             }
             Message::StopServer => {
-                self.current_state = ServerState::Connecting;
+                self.server_info = ResponsePayload {
+                    server_state: ServerState::Connecting,
+                    ip_address: self.server_info.ip_address.clone(),
+                };
                 Command::perform(
                     post_request_to_server(PostRequestType::StopServer, None),
                     Message::UpdateServerState,
                 )
             }
             Message::UpdateServerState(update) => match update {
-                Ok(state) => {
-                    self.current_state = state;
-                    match state {
+                Ok(server_info) => {
+                    let next_command = match server_info.server_state {
                         ServerState::Pending | ServerState::Stopping => {
                             self.state_check_count += 1;
                             Command::perform(
@@ -111,13 +123,16 @@ impl Application for ServerManager {
                             self.state_check_count = 0;
                             Command::none()
                         }
-                    }
+                    };
+                    self.server_info = server_info;
+                    next_command
                 }
                 Err(err) => {
                     self.err_message = "Err: ".to_string() + &err;
                     Command::none()
                 }
             },
+            Message::AddressInputIsChanged(ref _change) => Command::none(), //NOP
         }
     }
 
@@ -133,16 +148,28 @@ impl Application for ServerManager {
             .on_press(message)
         };
 
+        let checking_counter_str = self.generate_state_count_str();
         Column::new()
             .padding(20)
             .spacing(10)
             .align_items(Align::Center)
             .push(
-                Text::new(&self.current_state.to_string())
-                    .color(self.current_state.color())
+                Text::new(&self.server_info.server_state.to_string())
+                    .color(self.server_info.server_state.color())
                     .size(30),
             )
-            .push(Text::new(self.generate_state_count_str()).size(30))
+            .push(
+                Row::new()
+                    .push(Text::new("Server Address:"))
+                    .spacing(10)
+                    .push(TextInput::new(
+                        &mut self.address_state,
+                        "",
+                        &self.server_info.ip_address.clone().unwrap_or(String::new()),
+                        Message::AddressInputIsChanged,
+                    )),
+            )
+            .push(Text::new(checking_counter_str).size(30))
             .push(
                 Row::new()
                     .spacing(8)
