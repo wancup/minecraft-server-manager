@@ -37,6 +37,7 @@ struct PostPayload {
 #[serde(rename_all = "camelCase")]
 struct ResponsePayload {
     server_state: ServerState,
+    ip_address: Option<String>,
 }
 
 /// API Gatewayからのリクエストを管理する
@@ -45,18 +46,27 @@ fn manage_request(req: PostPayload, _ctx: Context) -> Result<ResponsePayload, Ha
         PostRequestType::StartServer => {
             let client = Ec2Client::new(AWS_REGION);
             let server_state = start_server(&client).map_err(|e| HandlerError::from(e.as_str()))?;
-            Ok(ResponsePayload { server_state })
+            Ok(ResponsePayload {
+                server_state,
+                ip_address: None,
+            })
         }
         PostRequestType::GetServerStatus => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state =
+            let (server_state, ip_address) =
                 get_server_status(&client).map_err(|e| HandlerError::from(e.as_str()))?;
-            Ok(ResponsePayload { server_state })
+            Ok(ResponsePayload {
+                server_state,
+                ip_address,
+            })
         }
         PostRequestType::StopServer => {
             let client = Ec2Client::new(AWS_REGION);
             let server_state = stop_server(&client).map_err(|e| HandlerError::from(e.as_str()))?;
-            Ok(ResponsePayload { server_state })
+            Ok(ResponsePayload {
+                server_state,
+                ip_address: None,
+            })
         }
     }
 }
