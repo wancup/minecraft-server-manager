@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "minecraft-server-manager-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clipboard",
  "iced",
