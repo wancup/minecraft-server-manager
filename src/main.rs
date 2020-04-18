@@ -1,9 +1,10 @@
 #![windows_subsystem = "windows"]
 
 use crate::server::{post_request_to_server, PostRequestType, ResponsePayload, ServerState};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use iced::{
-    button, executor, text_input, window, Align, Application, Button, Color, Column, Command,
-    Element, HorizontalAlignment, Length, Row, Settings, Text, TextInput,
+    button, executor, window, Align, Application, Button, Color, Column, Command, Element,
+    HorizontalAlignment, Length, Row, Settings, Text,
 };
 use std::time::Duration;
 
@@ -15,12 +16,12 @@ mod server;
 struct ServerManager {
     /// 現在のサーバーの情報
     server_info: ResponsePayload,
-    /// IPアドレス表示用TextInputの状態
-    address_state: text_input::State,
     /// エラー発生時のエラー内容
     err_message: String,
     /// サーバの状態確認を行った回数
     state_check_count: u16,
+    /// サーバIPをコピーするボタン
+    copy_address_button: button::State,
     /// サーバの起動ボタン
     start_server_button: button::State,
     /// サーバの状態を確認するボタン
@@ -34,6 +35,8 @@ struct ServerManager {
 pub enum Message {
     /// 開始ボタンが押された
     StartServer,
+    /// アドレスコピーボタンが押された
+    CopyServerAddress,
     /// リロードボタンが押された
     ReloadServerStatus,
     /// 停止ボタンが押された
@@ -52,6 +55,42 @@ impl ServerManager {
             out += ".";
         }
         out
+    }
+
+    /// サーバの状態確認後に行うコマンドを取得する
+    fn get_next_command_after_update_state(
+        &mut self,
+        server_info: ResponsePayload,
+    ) -> Command<Message> {
+        let next_command = match server_info.server_state {
+            ServerState::Pending | ServerState::Stopping => {
+                self.state_check_count += 1;
+                Command::perform(
+                    post_request_to_server(
+                        PostRequestType::GetServerStatus,
+                        Some(Duration::from_millis(1500)),
+                    ),
+                    Message::UpdateServerState,
+                )
+            }
+            _ => {
+                self.state_check_count = 0;
+                Command::none()
+            }
+        };
+        self.server_info = server_info;
+        next_command
+    }
+
+    /// サーバのIPアドレスをクリップボードにコピーする
+    fn copy_address_to_clipboard(&mut self, address: String) {
+        // TODO: fix unwrap
+        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+        let copy_result = ctx.set_contents(address);
+        match copy_result {
+            Ok(_) => (),
+            Err(err) => self.err_message = err.to_string(),
+        }
     }
 }
 
@@ -86,6 +125,13 @@ impl Application for ServerManager {
                     Message::UpdateServerState,
                 )
             }
+            Message::CopyServerAddress => {
+                match self.server_info.ip_address.clone() {
+                    Some(address) => self.copy_address_to_clipboard(address),
+                    None => (), // NOP
+                };
+                Command::none()
+            }
             Message::ReloadServerStatus => {
                 self.server_info = ResponsePayload {
                     server_state: ServerState::Connecting,
@@ -107,26 +153,7 @@ impl Application for ServerManager {
                 )
             }
             Message::UpdateServerState(update) => match update {
-                Ok(server_info) => {
-                    let next_command = match server_info.server_state {
-                        ServerState::Pending | ServerState::Stopping => {
-                            self.state_check_count += 1;
-                            Command::perform(
-                                post_request_to_server(
-                                    PostRequestType::GetServerStatus,
-                                    Some(Duration::from_millis(1500)),
-                                ),
-                                Message::UpdateServerState,
-                            )
-                        }
-                        _ => {
-                            self.state_check_count = 0;
-                            Command::none()
-                        }
-                    };
-                    self.server_info = server_info;
-                    next_command
-                }
+                Ok(server_info) => self.get_next_command_after_update_state(server_info),
                 Err(err) => {
                     self.err_message = "Err: ".to_string() + &err;
                     Command::none()
@@ -160,14 +187,17 @@ impl Application for ServerManager {
             )
             .push(
                 Row::new()
+                    .align_items(Align::Center)
                     .push(Text::new("Server Address:"))
                     .spacing(10)
-                    .push(TextInput::new(
-                        &mut self.address_state,
-                        "",
+                    .push(Text::new(
                         &self.server_info.ip_address.clone().unwrap_or(String::new()),
-                        Message::AddressInputIsChanged,
-                    )),
+                    ))
+                    .push(
+                        Button::new(&mut self.copy_address_button, Text::new("Copy"))
+                            .height(Length::Shrink)
+                            .on_press(Message::CopyServerAddress),
+                    ),
             )
             .push(Text::new(checking_counter_str).size(30))
             .push(
