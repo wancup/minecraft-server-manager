@@ -92,6 +92,46 @@ impl ServerManager {
             Err(err) => self.err_message = err.to_string(),
         }
     }
+
+    /// サーバの起動コマンドを実行する
+    fn perform_start_server_command(&mut self) -> Command<Message> {
+        match self.server_info.server_state {
+            ServerState::Stopped => {
+                self.server_info = ResponsePayload {
+                    server_state: ServerState::Connecting,
+                    ip_address: self.server_info.ip_address.clone(),
+                };
+                Command::perform(
+                    post_request_to_server(PostRequestType::StartServer, None),
+                    Message::UpdateServerState,
+                )
+            }
+            _ => {
+                self.err_message = "Server is not stopped".to_string();
+                Command::none()
+            }
+        }
+    }
+
+    /// サーバの停止コマンドを実行する
+    fn perform_stop_server_command(&mut self) -> Command<Message> {
+        match self.server_info.server_state {
+            ServerState::Running => {
+                self.server_info = ResponsePayload {
+                    server_state: ServerState::Connecting,
+                    ip_address: self.server_info.ip_address.clone(),
+                };
+                Command::perform(
+                    post_request_to_server(PostRequestType::StopServer, None),
+                    Message::UpdateServerState,
+                )
+            }
+            _ => {
+                self.err_message = "Server is not running".to_string();
+                Command::none()
+            }
+        }
+    }
 }
 
 impl Application for ServerManager {
@@ -115,16 +155,7 @@ impl Application for ServerManager {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::StartServer => {
-                self.server_info = ResponsePayload {
-                    server_state: ServerState::Connecting,
-                    ip_address: self.server_info.ip_address.clone(),
-                };
-                Command::perform(
-                    post_request_to_server(PostRequestType::StartServer, None),
-                    Message::UpdateServerState,
-                )
-            }
+            Message::StartServer => self.perform_start_server_command(),
             Message::CopyServerAddress => {
                 match self.server_info.ip_address.clone() {
                     Some(address) => self.copy_address_to_clipboard(address),
@@ -142,16 +173,7 @@ impl Application for ServerManager {
                     Message::UpdateServerState,
                 )
             }
-            Message::StopServer => {
-                self.server_info = ResponsePayload {
-                    server_state: ServerState::Connecting,
-                    ip_address: self.server_info.ip_address.clone(),
-                };
-                Command::perform(
-                    post_request_to_server(PostRequestType::StopServer, None),
-                    Message::UpdateServerState,
-                )
-            }
+            Message::StopServer => self.perform_stop_server_command(),
             Message::UpdateServerState(update) => match update {
                 Ok(server_info) => self.get_next_command_after_update_state(server_info),
                 Err(err) => {
