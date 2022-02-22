@@ -1,10 +1,11 @@
 #![windows_subsystem = "windows"]
 
 use crate::server::{post_request_to_server, PostRequestType, ResponsePayload, ServerState};
+use anyhow::Result;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use iced::{
-    button, executor, window, Align, Application, Button, Color, Column, Command, Element,
-    HorizontalAlignment, Length, Row, Settings, Text,
+    button, executor, window, Align, Application, Button, Clipboard, Color, Column, Command,
+    Element, HorizontalAlignment, Length, Row, Settings, Text,
 };
 use std::time::Duration;
 
@@ -153,7 +154,11 @@ impl Application for ServerManager {
         "Minecraft Server Manager".to_string()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(
+        &mut self,
+        message: Self::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
         match message {
             Message::StartServer => self.perform_start_server_command(),
             Message::CopyServerAddress => {
@@ -246,14 +251,14 @@ impl Application for ServerManager {
     }
 }
 
-pub fn main() {
+pub fn main() -> Result<()> {
     let window = window::Settings {
         size: (500, 200),
-        resizable: true,
-        decorations: true,
+        ..Default::default()
     };
     ServerManager::run(Settings {
         window,
         ..Settings::default()
-    })
+    })?;
+    Ok(())
 }
