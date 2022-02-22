@@ -162,9 +162,8 @@ impl Application for ServerManager {
         match message {
             Message::StartServer => self.perform_start_server_command(),
             Message::CopyServerAddress => {
-                match self.server_info.ip_address.clone() {
-                    Some(address) => self.copy_address_to_clipboard(address),
-                    None => (), // NOP
+                if let Some(address) = self.server_info.ip_address.clone() {
+                    self.copy_address_to_clipboard(address)
                 };
                 Command::none()
             }
@@ -218,7 +217,7 @@ impl Application for ServerManager {
                     .push(Text::new("Server Address:"))
                     .spacing(10)
                     .push(Text::new(
-                        &self.server_info.ip_address.clone().unwrap_or(String::new()),
+                        &self.server_info.ip_address.clone().unwrap_or_default(),
                     ))
                     .push(
                         Button::new(&mut self.copy_address_button, Text::new("Copy"))

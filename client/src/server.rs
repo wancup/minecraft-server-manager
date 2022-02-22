@@ -88,9 +88,8 @@ pub async fn post_request_to_server(
     req_type: PostRequestType,
     sleep_duration: Option<Duration>,
 ) -> Result<ResponsePayload, String> {
-    match sleep_duration {
-        Some(time) => sleep(time),
-        None => (), //NOP
+    if let Some(time) = sleep_duration {
+        sleep(time)
     }
     let payload = PostPayload {
         request_type: req_type,
