@@ -21,7 +21,7 @@ pub fn start_server(client: &Ec2Client) -> Result<ServerState, String> {
         .unwrap()
         .block_on(client.start_instances(run_request));
     match start_result {
-        Ok(ref res) => get_server_state_from_start_result(&res),
+        Ok(ref res) => get_server_state_from_start_result(res),
         Err(ref _err) => Err("Failed to wave up server".to_string()),
     }
 }

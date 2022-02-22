@@ -71,11 +71,11 @@ fn get_first_server_status_from_describe_instances_result(
         Some(ref reservation_list) => {
             let first_reservation = reservation_list
                 .first()
-                .ok_or("No reservation in describe result".to_string())?;
+                .ok_or_else(|| "No reservation in describe result".to_string())?;
             let instance_list = first_reservation
                 .clone()
                 .instances
-                .ok_or("No instance in describe result".to_string())?;
+                .ok_or_else(|| "No instance in describe result".to_string())?;
             let first_instance = instance_list
                 .first()
                 .ok_or("No first option in describe result")?;
@@ -97,8 +97,8 @@ fn get_server_state_and_address_from_instance_info(
     let state = instance
         .state
         .clone()
-        .ok_or("No Instance State".to_string())?;
-    let state_str = state.name.ok_or("No State Str".to_string())?;
+        .ok_or_else(|| "No Instance State".to_string())?;
+    let state_str = state.name.ok_or_else(|| "No State Str".to_string())?;
     let address = instance.public_ip_address.clone();
     Ok((ServerState::from(state_str.as_str()), address))
 }
@@ -117,9 +117,9 @@ pub fn get_current_sever_state_from_instance_state_change_opt(
             let status_str = instance_state_change
                 .clone()
                 .current_state
-                .ok_or("No Current Instance State".to_string())?
+                .ok_or_else(|| "No Current Instance State".to_string())?
                 .name
-                .ok_or("No Current Instance State Name".to_string())?;
+                .ok_or_else(|| "No Current Instance State Name".to_string())?;
             Ok(ServerState::from(status_str.as_str()))
         }
         None => Err("No Current Instance State In Start Result".to_string()),
