@@ -1,0 +1,12 @@
+[package]
+name = "minecraft-server-manager-client"
+version = "0.1.1"
+authors = ["wancup <62416191+wancup@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+iced = { version = "0.1.1", features = ["tokio"] }
+serde = {version = "1.0.106", features = ["derive"]}
+serde_json = "1.0.51"
+reqwest = { version = "0.10", features = ["json"] }
+clipboard = "0.5.0"
