@@ -7,7 +7,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  scraper_ci:
+  ci:
 
     runs-on: ubuntu-latest
 
