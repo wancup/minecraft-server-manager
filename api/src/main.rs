@@ -2,8 +2,7 @@ use crate::config::AWS_REGION;
 use crate::server_starter::start_server;
 use crate::server_status::{get_server_status, ServerState};
 use crate::server_stopper::stop_server;
-use lambda_runtime::error::HandlerError;
-use lambda_runtime::Context;
+use lambda_http::{service_fn, Body, Error, IntoResponse, Request, RequestExt, Response};
 use rusoto_ec2::Ec2Client;
 use serde::{Deserialize, Serialize};
 
@@ -40,12 +39,30 @@ struct ResponsePayload {
     ip_address: Option<String>,
 }
 
+impl IntoResponse for ResponsePayload {
+    fn into_response(self) -> Response<Body> {
+        let body = Body::Text(serde_json::to_string(&self).expect("Failed Response Serialization"));
+        Response::builder()
+            .status(200)
+            .header("Content-Type", "application/json")
+            .body(body)
+            .unwrap()
+    }
+}
+
 /// API Gatewayからのリクエストを管理する
-fn manage_request(req: PostPayload, _ctx: Context) -> Result<ResponsePayload, HandlerError> {
+fn manage_request(req: PostPayload) -> Result<ResponsePayload, Response<Body>> {
+    let handle_500_error = |e: String| {
+        Response::builder()
+            .status(500)
+            .body(Body::Text(e))
+            .expect("failed to render response")
+    };
+
     match req.request_type {
         PostRequestType::StartServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = start_server(&client).map_err(|e| HandlerError::from(e.as_str()))?;
+            let server_state = start_server(&client).map_err(handle_500_error)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -54,7 +71,7 @@ fn manage_request(req: PostPayload, _ctx: Context) -> Result<ResponsePayload, Ha
         PostRequestType::GetServerStatus => {
             let client = Ec2Client::new(AWS_REGION);
             let (server_state, ip_address) =
-                get_server_status(&client).map_err(|e| HandlerError::from(e.as_str()))?;
+                get_server_status(&client).map_err(handle_500_error)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address,
@@ -62,7 +79,7 @@ fn manage_request(req: PostPayload, _ctx: Context) -> Result<ResponsePayload, Ha
         }
         PostRequestType::StopServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = stop_server(&client).map_err(|e| HandlerError::from(e.as_str()))?;
+            let server_state = stop_server(&client).map_err(handle_500_error)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -71,6 +88,27 @@ fn manage_request(req: PostPayload, _ctx: Context) -> Result<ResponsePayload, Ha
     }
 }
 
-fn main() {
-    lambda_runtime::lambda!(manage_request);
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let handler = move |event: Request| async move {
+        let decoded_payload = event.payload::<PostPayload>();
+
+        let response = match decoded_payload {
+            Ok(Some(payload)) => manage_request(payload)
+                .map(|r| r.into_response())
+                .unwrap_or_else(|e| e),
+            Ok(None) => Response::builder()
+                .status(400)
+                .body("Payload Is Empty".into())
+                .expect("failed to render response"),
+            Err(e) => Response::builder()
+                .status(400)
+                .body(format!("Invalid Payload Format: {:?}", e).into())
+                .expect("failed to render response"),
+        };
+        Ok(response)
+    };
+
+    lambda_http::run(service_fn(handler)).await?;
+    Ok(())
 }
