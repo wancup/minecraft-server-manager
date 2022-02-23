@@ -1,5 +1,5 @@
 [package]
-name = "minecraft-server-manager"
+name = "api"
 version = "0.1.0"
 authors = ["wancup <62416191+wancap@users.noreply.github.com>"]
 edition = "2018"
