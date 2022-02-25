@@ -4,7 +4,6 @@ use rusoto_ec2::{
     InstanceStateChange,
 };
 use serde::{Deserialize, Serialize};
-use tokio::runtime::Runtime;
 
 /// サーバーの状態
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -42,17 +41,16 @@ impl From<&str> for ServerState {
 ///
 /// * client - EC2接続用クライアント
 ///
-pub fn get_server_status(client: &Ec2Client) -> Result<(ServerState, IpAddress), String> {
+pub async fn get_server_status(client: &Ec2Client) -> Result<(ServerState, IpAddress), String> {
     let ec2_config = read_ec2_config();
     let describe_request = DescribeInstancesRequest {
         instance_ids: Some(ec2_config.instance_id_list),
         ..DescribeInstancesRequest::default()
     };
 
-    // TODO: fix unwrap
-    let status_result = Runtime::new()
-        .unwrap()
-        .block_on(client.describe_instances(describe_request))
+    let status_result = client
+        .describe_instances(describe_request)
+        .await
         .map_err(|e| e.to_string())?;
     get_first_server_status_from_describe_instances_result(&status_result)
 }

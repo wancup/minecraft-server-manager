@@ -2,9 +2,10 @@ use crate::config::AWS_REGION;
 use crate::server_starter::start_server;
 use crate::server_status::{get_server_status, ServerState};
 use crate::server_stopper::stop_server;
-use lambda_http::{service_fn, Body, Error, IntoResponse, Request, RequestExt, Response};
+use lambda_runtime::{service_fn, Error, LambdaEvent};
 use rusoto_ec2::Ec2Client;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 mod config;
 mod server_starter;
@@ -39,28 +40,14 @@ struct ResponsePayload {
     ip_address: Option<String>,
 }
 
-impl IntoResponse for ResponsePayload {
-    fn into_response(self) -> Response<Body> {
-        let body = Body::Text(serde_json::to_string(&self).expect("Failed Response Serialization"));
-        Response::builder()
-            .status(200)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .unwrap()
-    }
-}
-
 /// API Gatewayからのリクエストを管理する
-async fn manage_request(request: Request) -> Result<impl IntoResponse, Error> {
-    let decoded_payload = request
-        .payload::<PostPayload>()
-        .map_err(|e| format!("Invalid Payload: {}", e))?
-        .ok_or_else(|| "Payload Is Empty!".to_string())?;
+async fn manage_request(event: LambdaEvent<Value>) -> Result<ResponsePayload, Error> {
+    let decoded_payload = serde_json::from_value::<PostPayload>(event.payload)?;
 
     match decoded_payload.request_type {
         PostRequestType::StartServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = start_server(&client)?;
+            let server_state = start_server(&client).await?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -68,7 +55,7 @@ async fn manage_request(request: Request) -> Result<impl IntoResponse, Error> {
         }
         PostRequestType::GetServerStatus => {
             let client = Ec2Client::new(AWS_REGION);
-            let (server_state, ip_address) = get_server_status(&client)?;
+            let (server_state, ip_address) = get_server_status(&client).await?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address,
@@ -76,7 +63,7 @@ async fn manage_request(request: Request) -> Result<impl IntoResponse, Error> {
         }
         PostRequestType::StopServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = stop_server(&client)?;
+            let server_state = stop_server(&client).await?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -87,6 +74,7 @@ async fn manage_request(request: Request) -> Result<impl IntoResponse, Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    lambda_http::run(service_fn(manage_request)).await?;
+    let func = service_fn(manage_request);
+    lambda_runtime::run(func).await?;
     Ok(())
 }

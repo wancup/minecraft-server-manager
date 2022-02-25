@@ -1,7 +1,6 @@
 use crate::config::read_ec2_config;
 use crate::server_status::{get_current_sever_state_from_instance_state_change_opt, ServerState};
 use rusoto_ec2::{Ec2, Ec2Client, StopInstancesRequest, StopInstancesResult};
-use tokio::runtime::Runtime;
 
 /// サーバを停止する
 ///
@@ -9,15 +8,13 @@ use tokio::runtime::Runtime;
 ///
 /// * client - EC2クライアント
 ///
-pub fn stop_server(client: &Ec2Client) -> Result<ServerState, String> {
+pub async fn stop_server(client: &Ec2Client) -> Result<ServerState, String> {
     let ec2_config = read_ec2_config();
     let stop_req = StopInstancesRequest {
         instance_ids: ec2_config.instance_id_list,
         ..StopInstancesRequest::default()
     };
-    let stop_result = Runtime::new()
-        .unwrap()
-        .block_on(client.stop_instances(stop_req));
+    let stop_result = client.stop_instances(stop_req).await;
 
     match stop_result {
         Ok(res) => get_server_state_from_stop_result(res),
