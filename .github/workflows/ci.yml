@@ -22,6 +22,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Prepare
+        run: |
+          copy ./api/config/aws.template.json ./api/config/aws.json
+          copy ./client/config/server.template.json ./client/config/server.json
       - name: Format
         run: cargo fmt --all -- --check
       - name: Compile
