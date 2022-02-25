@@ -51,18 +51,16 @@ impl IntoResponse for ResponsePayload {
 }
 
 /// API Gatewayからのリクエストを管理する
-fn manage_request(req: PostPayload) -> Result<ResponsePayload, Response<Body>> {
-    let handle_500_error = |e: String| {
-        Response::builder()
-            .status(500)
-            .body(Body::Text(e))
-            .expect("failed to render response")
-    };
+async fn manage_request(request: Request) -> Result<impl IntoResponse, Error> {
+    let decoded_payload = request
+        .payload::<PostPayload>()
+        .map_err(|e| format!("Invalid Payload: {}", e))?
+        .ok_or_else(|| "Payload Is Empty!".to_string())?;
 
-    match req.request_type {
+    match decoded_payload.request_type {
         PostRequestType::StartServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = start_server(&client).map_err(handle_500_error)?;
+            let server_state = start_server(&client)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -70,8 +68,7 @@ fn manage_request(req: PostPayload) -> Result<ResponsePayload, Response<Body>> {
         }
         PostRequestType::GetServerStatus => {
             let client = Ec2Client::new(AWS_REGION);
-            let (server_state, ip_address) =
-                get_server_status(&client).map_err(handle_500_error)?;
+            let (server_state, ip_address) = get_server_status(&client)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address,
@@ -79,7 +76,7 @@ fn manage_request(req: PostPayload) -> Result<ResponsePayload, Response<Body>> {
         }
         PostRequestType::StopServer => {
             let client = Ec2Client::new(AWS_REGION);
-            let server_state = stop_server(&client).map_err(handle_500_error)?;
+            let server_state = stop_server(&client)?;
             Ok(ResponsePayload {
                 server_state,
                 ip_address: None,
@@ -90,25 +87,6 @@ fn manage_request(req: PostPayload) -> Result<ResponsePayload, Response<Body>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let handler = move |event: Request| async move {
-        let decoded_payload = event.payload::<PostPayload>();
-
-        let response = match decoded_payload {
-            Ok(Some(payload)) => manage_request(payload)
-                .map(|r| r.into_response())
-                .unwrap_or_else(|e| e),
-            Ok(None) => Response::builder()
-                .status(400)
-                .body("Payload Is Empty".into())
-                .expect("failed to render response"),
-            Err(e) => Response::builder()
-                .status(400)
-                .body(format!("Invalid Payload Format: {:?}", e).into())
-                .expect("failed to render response"),
-        };
-        Ok(response)
-    };
-
-    lambda_http::run(service_fn(handler)).await?;
+    lambda_http::run(service_fn(manage_request)).await?;
     Ok(())
 }
