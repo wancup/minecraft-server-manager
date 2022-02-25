@@ -24,6 +24,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Prepare
         run: |
+          export DEBIAN_FRONTED=noninteractive
+          sudo apt-get -qq update
           sudo apt-get install -y libxkbcommon-dev
           cp ./api/config/aws.template.json ./api/config/aws.json
           cp ./client/config/server.template.json ./client/config/server.json
