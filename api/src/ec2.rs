@@ -1,17 +1,15 @@
 use crate::types::ResponsePayload;
 use crate::types::ServerState;
 use anyhow::{anyhow, Result};
-use rusoto_ec2::{
-    DescribeInstancesRequest, Ec2, Ec2Client, StartInstancesRequest, StopInstancesRequest,
-};
+use aws_sdk_ec2::Client;
 
 pub struct InstanceManager {
-    client: Ec2Client,
+    client: Client,
     instance_id: String,
 }
 
 impl InstanceManager {
-    pub fn new(client: Ec2Client, instance_id: String) -> Self {
+    pub fn new(client: Client, instance_id: String) -> Self {
         Self {
             client,
             instance_id,
@@ -19,14 +17,11 @@ impl InstanceManager {
     }
 
     pub async fn check_status(&self) -> Result<ResponsePayload> {
-        let describe_request = DescribeInstancesRequest {
-            instance_ids: Some(vec![self.instance_id.clone()]),
-            ..DescribeInstancesRequest::default()
-        };
-
         let instance_info = self
             .client
-            .describe_instances(describe_request)
+            .describe_instances()
+            .set_instance_ids(Some(vec![self.instance_id.clone()]))
+            .send()
             .await?
             .reservations
             .as_ref()
@@ -57,14 +52,11 @@ impl InstanceManager {
     }
 
     pub async fn start(&self) -> Result<ServerState> {
-        let run_request = StartInstancesRequest {
-            instance_ids: vec![self.instance_id.clone()],
-            additional_info: None,
-            dry_run: None,
-        };
         let start_result = self
             .client
-            .start_instances(run_request)
+            .start_instances()
+            .set_instance_ids(Some(vec![self.instance_id.clone()]))
+            .send()
             .await?
             .starting_instances
             .as_ref()
@@ -82,13 +74,11 @@ impl InstanceManager {
     }
 
     pub async fn stop(&self) -> Result<ServerState> {
-        let stop_req = StopInstancesRequest {
-            instance_ids: vec![self.instance_id.clone()],
-            ..StopInstancesRequest::default()
-        };
         let stop_result = self
             .client
-            .stop_instances(stop_req)
+            .stop_instances()
+            .set_instance_ids(Some(vec![self.instance_id.clone()]))
+            .send()
             .await?
             .stopping_instances
             .as_ref()

@@ -1,8 +1,8 @@
-use crate::config::{read_ec2_config, AWS_REGION};
+use crate::config::read_ec2_config;
 use crate::ec2::InstanceManager;
 use crate::types::{RequestPayload, RequestType, ResponsePayload};
+use aws_sdk_ec2::{Client, Region};
 use lambda_runtime::{service_fn, Error, LambdaEvent};
-use rusoto_ec2::Ec2Client;
 use serde_json::Value;
 
 mod config;
@@ -11,7 +11,9 @@ mod types;
 
 async fn handle_request(event: LambdaEvent<Value>) -> Result<ResponsePayload, Error> {
     let decoded_payload = serde_json::from_value::<RequestPayload>(event.payload)?;
-    let ec2_client = Ec2Client::new(AWS_REGION);
+    let region = Region::new("ap-northeast-1");
+    let aws_config = aws_config::from_env().region(region).load().await;
+    let ec2_client = Client::new(&aws_config);
     let manager = InstanceManager::new(ec2_client, read_ec2_config().instance_id);
 
     match decoded_payload.request_type {

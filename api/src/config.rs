@@ -1,8 +1,5 @@
-use rusoto_core::Region;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-
-pub const AWS_REGION: Region = Region::ApNortheast1;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
