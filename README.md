@@ -1,11 +1,6 @@
-
+# Minecraft-Server-Manager
 
 ## API (AWS Lambda)
-
-### Preparation
-
-1. api/config/aws.template.jsonをapi/config/aws.jsonにコピー
-2. api/config/aws.jsonのinstanceIdに管理するインスタンスのIDを指定する
 
 ### Build (Arm64)
 
@@ -16,4 +11,5 @@ $ docker run -v $PWD:/code -v $HOME/.cargo/registry:/root/.cargo/registry -v $HO
 
 ### Deploy
 
-upload ```target/api/api.zip```
+1. upload ```target/api/api.zip```
+2. Lambdaの環境変数```MSM_EC2_INSTANCE_ID```に管理するEC2のインスタンスIDを設定する

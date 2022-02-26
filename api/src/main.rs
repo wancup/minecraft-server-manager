@@ -14,7 +14,8 @@ async fn handle_request(event: LambdaEvent<Value>) -> Result<ResponsePayload, Er
     let region = Region::new("ap-northeast-1");
     let aws_config = aws_config::from_env().region(region).load().await;
     let ec2_client = Client::new(&aws_config);
-    let manager = InstanceManager::new(ec2_client, read_ec2_config().instance_id);
+    let msm_config = read_ec2_config()?;
+    let manager = InstanceManager::new(ec2_client, msm_config.ec2_instance_id);
 
     match decoded_payload.request_type {
         RequestType::StartServer => {
