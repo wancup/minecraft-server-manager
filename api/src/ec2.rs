@@ -3,6 +3,7 @@ use crate::types::ServerState;
 use anyhow::{anyhow, Result};
 use aws_sdk_ec2::Client;
 
+#[derive(Debug)]
 pub struct InstanceManager {
     client: Client,
     instance_id: String,
