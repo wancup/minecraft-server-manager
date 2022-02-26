@@ -2,6 +2,11 @@
 
 ## API (AWS Lambda)
 
+### Preparation
+
+1. api/config/aws.template.jsonをapi/config/aws.jsonにコピー
+2. api/config/aws.jsonのinstanceIdに管理するインスタンスのIDを指定する
+
 ### Build (Arm64)
 
 ```shell
