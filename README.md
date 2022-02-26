@@ -1,5 +1,11 @@
 # Minecraft-Server-Manager
 
+## EC2
+
+1. マイクラサーバーのjarファイルをEC2に配置
+2. サーバーの初回起動とEULAの設定を行う
+3. ```start_mc_server.sh```をEC2に置き、インスタンス起動時に実行するよう設定
+
 ## API (AWS Lambda)
 
 ### Build (Arm64)
