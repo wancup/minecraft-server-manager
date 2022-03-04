@@ -2,7 +2,6 @@
 
 use crate::server::{post_request_to_server, PostRequestType, ResponsePayload, ServerState};
 use anyhow::Result;
-use clipboard::{ClipboardContext, ClipboardProvider};
 use iced::{
     button, executor, window, Align, Application, Button, Clipboard, Color, Column, Command,
     Element, HorizontalAlignment, Length, Row, Settings, Text,
@@ -66,16 +65,6 @@ impl MsmClient {
         next_command
     }
 
-    fn copy_address_to_clipboard(&mut self, address: String) {
-        // TODO: fix unwrap
-        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-        let copy_result = ctx.set_contents(address);
-        match copy_result {
-            Ok(_) => (),
-            Err(err) => self.err_message = err.to_string(),
-        }
-    }
-
     fn perform_start_server_command(&mut self) -> Command<Message> {
         match self.server_info.server_state {
             ServerState::Stopped => {
@@ -137,13 +126,13 @@ impl Application for MsmClient {
     fn update(
         &mut self,
         message: Self::Message,
-        _clipboard: &mut Clipboard,
+        clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
         match message {
             Message::StartServer => self.perform_start_server_command(),
             Message::CopyServerAddress => {
                 if let Some(address) = self.server_info.ip_address.clone() {
-                    self.copy_address_to_clipboard(address)
+                    clipboard.write(address);
                 };
                 Command::none()
             }
