@@ -1,5 +1,3 @@
-//! サーバのAPIへリクエストを送る
-
 use crate::config::get_api_config;
 use iced::Color;
 use reqwest::Client;
@@ -8,41 +6,28 @@ use std::fmt;
 use std::thread::sleep;
 use std::time::Duration;
 
-/// POSTによるリクエストの種別
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PostRequestType {
-    /// サーバを起動する
     StartServer,
-    /// サーバーの状態を取得する
     GetServerStatus,
-    /// サーバを停止する
     StopServer,
 }
 
-/// POSTのPayload
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PostPayload {
-    /// リクエストの種別
     pub request_type: PostRequestType,
 }
 
-/// サーバーの状態
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerState {
-    /// 起動処理中
     Pending,
-    /// 起動中
     Running,
-    /// 停止処理中
     Stopping,
-    /// 停止中
     Stopped,
-    /// その他予期しない状態
     Unexpected,
-    /// API呼び出し中
     Connecting,
 }
 
@@ -69,7 +54,6 @@ impl fmt::Display for ServerState {
     }
 }
 
-/// レスポンス
 #[derive(Debug, Default, Eq, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResponsePayload {
@@ -77,13 +61,6 @@ pub struct ResponsePayload {
     pub ip_address: Option<String>,
 }
 
-/// サーバに対してPOSTを送る
-///
-/// # Arguments
-///
-/// * payload - POST内容
-/// * sleep_duration - POSTの前にスリープさせる間隔(任意)
-///
 pub async fn post_request_to_server(
     req_type: PostRequestType,
     sleep_duration: Option<Duration>,
@@ -96,7 +73,7 @@ pub async fn post_request_to_server(
     };
     let gateway = get_api_config();
     let current_state: ResponsePayload = Client::new()
-        .post(&gateway.uri)
+        .post(&gateway.url)
         .header("x-api-key", &gateway.api_key)
         .json(&payload)
         .send()

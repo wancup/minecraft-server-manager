@@ -12,60 +12,43 @@ use std::time::Duration;
 mod config;
 mod server;
 
-/// メイン画面
 #[derive(Debug, Default)]
-struct ServerManager {
-    /// 現在のサーバーの情報
+struct MsmClient {
     server_info: ResponsePayload,
-    /// エラー発生時のエラー内容
     err_message: String,
-    /// サーバの状態確認を行った回数
-    state_check_count: u16,
-    /// サーバIPをコピーするボタン
+    state_checked_count: u16,
     copy_address_button: button::State,
-    /// サーバの起動ボタン
     start_server_button: button::State,
-    /// サーバの状態を確認するボタン
     reload_server_state_button: button::State,
-    /// サーバの停止ボタン
     stop_server_button: button::State,
 }
 
-/// イベントメッセージ
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Message {
-    /// 開始ボタンが押された
     StartServer,
-    /// アドレスコピーボタンが押された
     CopyServerAddress,
-    /// リロードボタンが押された
-    ReloadServerStatus,
-    /// 停止ボタンが押された
+    ReloadServerState,
     StopServer,
-    /// サーバ状態の表示を変更する
     UpdateServerState(Result<ResponsePayload, String>),
-    /// サーバIPのTextInputが変更された
     AddressInputIsChanged(String),
 }
 
-impl ServerManager {
-    /// ロード回数カウントを生成する
-    fn generate_state_count_str(&self) -> String {
+impl MsmClient {
+    fn generate_checking_count_str(&self) -> String {
         let mut out = String::new();
-        for _count in 0..self.state_check_count {
+        for _count in 0..self.state_checked_count {
             out += ".";
         }
         out
     }
 
-    /// サーバの状態確認後に行うコマンドを取得する
     fn get_next_command_after_update_state(
         &mut self,
         server_info: ResponsePayload,
     ) -> Command<Message> {
         let next_command = match server_info.server_state {
             ServerState::Pending | ServerState::Stopping => {
-                self.state_check_count += 1;
+                self.state_checked_count += 1;
                 Command::perform(
                     post_request_to_server(
                         PostRequestType::GetServerStatus,
@@ -75,7 +58,7 @@ impl ServerManager {
                 )
             }
             _ => {
-                self.state_check_count = 0;
+                self.state_checked_count = 0;
                 Command::none()
             }
         };
@@ -83,7 +66,6 @@ impl ServerManager {
         next_command
     }
 
-    /// サーバのIPアドレスをクリップボードにコピーする
     fn copy_address_to_clipboard(&mut self, address: String) {
         // TODO: fix unwrap
         let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
@@ -94,7 +76,6 @@ impl ServerManager {
         }
     }
 
-    /// サーバの起動コマンドを実行する
     fn perform_start_server_command(&mut self) -> Command<Message> {
         match self.server_info.server_state {
             ServerState::Stopped => {
@@ -114,7 +95,6 @@ impl ServerManager {
         }
     }
 
-    /// サーバの停止コマンドを実行する
     fn perform_stop_server_command(&mut self) -> Command<Message> {
         match self.server_info.server_state {
             ServerState::Running => {
@@ -135,14 +115,14 @@ impl ServerManager {
     }
 }
 
-impl Application for ServerManager {
+impl Application for MsmClient {
     type Executor = executor::Default;
     type Message = Message;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
         (
-            ServerManager::default(),
+            MsmClient::default(),
             Command::perform(
                 post_request_to_server(PostRequestType::GetServerStatus, None),
                 Message::UpdateServerState,
@@ -167,7 +147,7 @@ impl Application for ServerManager {
                 };
                 Command::none()
             }
-            Message::ReloadServerStatus => {
+            Message::ReloadServerState => {
                 self.server_info = ResponsePayload {
                     server_state: ServerState::Connecting,
                     ip_address: self.server_info.ip_address.clone(),
@@ -190,7 +170,7 @@ impl Application for ServerManager {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let row_button = |state, label, message| {
+        let api_command_button = |state, label, message| {
             Button::new(
                 state,
                 Text::new(label)
@@ -201,7 +181,7 @@ impl Application for ServerManager {
             .on_press(message)
         };
 
-        let checking_counter_str = self.generate_state_count_str();
+        let checking_counter_str = self.generate_checking_count_str();
         Column::new()
             .padding(20)
             .spacing(10)
@@ -229,17 +209,17 @@ impl Application for ServerManager {
             .push(
                 Row::new()
                     .spacing(8)
-                    .push(row_button(
+                    .push(api_command_button(
                         &mut self.start_server_button,
                         "Start Server",
                         Message::StartServer,
                     ))
-                    .push(row_button(
+                    .push(api_command_button(
                         &mut self.reload_server_state_button,
                         "Reload Status",
-                        Message::ReloadServerStatus,
+                        Message::ReloadServerState,
                     ))
-                    .push(row_button(
+                    .push(api_command_button(
                         &mut self.stop_server_button,
                         "Stop Server",
                         Message::StopServer,
@@ -255,7 +235,7 @@ pub fn main() -> Result<()> {
         size: (500, 200),
         ..Default::default()
     };
-    ServerManager::run(Settings {
+    MsmClient::run(Settings {
         window,
         ..Settings::default()
     })?;

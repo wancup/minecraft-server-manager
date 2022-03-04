@@ -34,7 +34,7 @@ $ docker run -v $PWD:/code -v $HOME/.cargo/registry:/root/.cargo/registry -v $HO
 ### Preparation
 
 1. client/config/server.template.jsonをconfig/server.jsonにリネーム
-2. client/config/server.jsonのuriにサーバ管理APIのURIを記載
+2. client/config/server.jsonのurlにサーバ管理APIのURIを記載
 3. client/config/server.jsonのapiKeyにAPIへアクセスする際のキーを記載
 
 ### Build
