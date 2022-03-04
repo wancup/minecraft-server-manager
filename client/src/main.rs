@@ -15,7 +15,7 @@ mod server;
 struct MsmClient {
     server_info: ResponsePayload,
     err_message: String,
-    state_checked_count: u16,
+    state_checked_count: usize,
     copy_address_button: button::State,
     start_server_button: button::State,
     reload_server_state_button: button::State,
@@ -33,14 +33,6 @@ pub enum Message {
 }
 
 impl MsmClient {
-    fn generate_checking_count_str(&self) -> String {
-        let mut out = String::new();
-        for _count in 0..self.state_checked_count {
-            out += ".";
-        }
-        out
-    }
-
     fn get_next_command_after_update_state(
         &mut self,
         server_info: ResponsePayload,
@@ -170,7 +162,7 @@ impl Application for MsmClient {
             .on_press(message)
         };
 
-        let checking_counter_str = self.generate_checking_count_str();
+        let checking_counter_str = ".".repeat(self.state_checked_count);
         Column::new()
             .padding(20)
             .spacing(10)
