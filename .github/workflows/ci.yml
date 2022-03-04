@@ -20,7 +20,7 @@ jobs:
         run: |
           export DEBIAN_FRONTED=noninteractive
           sudo apt-get -qq update
-          sudo apt-get install -y libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
+          sudo apt-get install -y libxkbcommon-dev
           cp ./client/config/server.template.json ./client/config/server.json
       - name: Format
         run: cargo fmt --all -- --check
