@@ -3,8 +3,8 @@
 use crate::server::{post_request_to_server, PostRequestType, ResponsePayload, ServerState};
 use anyhow::Result;
 use iced::{
-    alignment, button, clipboard, executor, window, Alignment, Application, Button, Color, Column,
-    Command, Element, Length, Row, Settings, Text,
+    button, executor, window, Align, Application, Button, Clipboard, Color, Column, Command,
+    Element, HorizontalAlignment, Length, Row, Settings, Text,
 };
 use std::time::Duration;
 
@@ -115,12 +115,16 @@ impl Application for MsmClient {
         "Minecraft Server Manager".to_string()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
         match message {
             Message::StartServer => self.perform_start_server_command(),
             Message::CopyServerAddress => {
                 if let Some(address) = self.server_info.ip_address.clone() {
-                    clipboard::write::<Self::Message>(address);
+                    clipboard.write(address);
                 };
                 Command::none()
             }
@@ -152,7 +156,7 @@ impl Application for MsmClient {
                 state,
                 Text::new(label)
                     .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
+                    .horizontal_alignment(HorizontalAlignment::Center),
             )
             .width(Length::Fill)
             .on_press(message)
@@ -162,7 +166,7 @@ impl Application for MsmClient {
         Column::new()
             .padding(20)
             .spacing(10)
-            .align_items(Alignment::Center)
+            .align_items(Align::Center)
             .push(
                 Text::new(&self.server_info.server_state.to_string())
                     .color(self.server_info.server_state.color())
@@ -170,7 +174,7 @@ impl Application for MsmClient {
             )
             .push(
                 Row::new()
-                    .align_items(Alignment::Center)
+                    .align_items(Align::Center)
                     .push(Text::new("Server Address:"))
                     .spacing(10)
                     .push(Text::new(
