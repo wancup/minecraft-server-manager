@@ -164,7 +164,7 @@ impl Application for MsmClient {
             .spacing(10)
             .align_items(Alignment::Center)
             .push(
-                Text::new(&self.server_info.server_state.to_string())
+                Text::new(self.server_info.server_state.to_string())
                     .color(self.server_info.server_state.color())
                     .size(30),
             )
@@ -174,7 +174,7 @@ impl Application for MsmClient {
                     .push(Text::new("Server Address:"))
                     .spacing(10)
                     .push(Text::new(
-                        &self.server_info.ip_address.clone().unwrap_or_default(),
+                        self.server_info.ip_address.clone().unwrap_or_default(),
                     ))
                     .push(
                         Button::new(&mut self.copy_address_button, Text::new("Copy"))
