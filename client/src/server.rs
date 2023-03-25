@@ -20,12 +20,13 @@ pub struct PostPayload {
     pub request_type: PostRequestType,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerState {
     Pending,
     Running,
     Stopping,
+    #[default]
     Stopped,
     Unexpected,
     Connecting,
@@ -39,12 +40,6 @@ impl ServerState {
             ServerState::Unexpected => Color::from_rgb(1.0, 0.0, 0.0),
             _ => Color::BLACK,
         }
-    }
-}
-
-impl Default for ServerState {
-    fn default() -> Self {
-        ServerState::Stopped
     }
 }
 
