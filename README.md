@@ -1,5 +1,11 @@
 # Minecraft-Server-Manager
 
+## 注意
+
+使用しなくなった&メンテナンスできていないためアーカイブします
+
+## 概要
+
 マイクラを遊ぶときだけAmazon EC2のサーバを起動するためのAWS Lambda関数とGUIクライアント
 
 ## Prerequisites
@@ -20,7 +26,7 @@
 
 ```shell
 $ docker image build -t msm-lambda .
-$ docker run -v $PWD:/code -v $HOME/.cargo/registry:/root/.cargo/registry -v $HOME/.cargo/git:/root/.cargo/git msm-lambda 
+$ docker run -v $PWD:/code -v $HOME/.cargo/registry:/root/.cargo/registry -v $HOME/.cargo/git:/root/.cargo/git msm-lambda
 ```
 
 ### Deploy
@@ -50,4 +56,3 @@ VisualStudioランタイムを静的リンクするため以下の環境変数�
 ```DOS
 (set RUSTFLAGS=-C target-feature=+crt-static) && cargo build -p client --release
 ```
-
